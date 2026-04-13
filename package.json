@@ -1,0 +1,28 @@
+{
+  "name": "api-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@kreisler/js-google-translate-free": "^4.0.2",
+    "@vitalets/google-translate-api": "^9.2.1",
+    "axios": "^1.14.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "p-limit": "^7.3.0",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.20.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8"
+  }
+}
