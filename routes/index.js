@@ -90,9 +90,10 @@ router.get("/value", async (req, res) => {
   }
 });
 
-router.get("/search", async (req, res) => {
+router.post("/search", async (req, res) => {
   try {
-    const { column, value, page, pageSize } = req.query;
+    const { column, page, pageSize } = req.query;
+    const { value, color_id } = req.body;
 
     if (!column || !value || !page || !pageSize) {
       return res
@@ -100,77 +101,80 @@ router.get("/search", async (req, res) => {
         .json({ message: "Faltan campos obligatorios", data: [] });
     }
 
+    let apiResults = [];
+
+    if (column === "lego") {
+      const piezas = await piezasSetData(value);
+      apiResults = piezas.results;
+    } else if (column === "pieza") {
+      const sets = await setsPiezaData(value, color_id);
+      apiResults = sets.results;
+    }
+
     const parsedPage = Math.max(1, parseInt(page) || 1);
     const parsedPageSize = Math.max(1, parseInt(pageSize) || 10);
     const offset = (parsedPage - 1) * parsedPageSize;
 
-    const result = await Lego.findAndCountAll({
+    const results = await Lego.findAndCountAll({
       where: { [column]: value },
       order: [["id", "ASC"]],
-      limit: parsedPageSize,
-      offset,
+      raw: true,
     });
 
-    const legosSet = [...new Set(result.rows.map((r) => r.lego))].filter(
-      Boolean,
-    );
-    const piezasSet = [...new Set(result.rows.map((r) => r.pieza))].filter(
-      Boolean,
-    );
+    let dataCombined = apiResults
+      .map((obj) => {
+        const encontrados = results.rows.filter((row) =>
+          column === "lego"
+            ? row.pieza === obj.element_id
+            : row.lego === obj.set_num.replace("-1", ""),
+        );
 
-    const [legosData, piezasData] = await Promise.all([
-      Promise.all(legosSet.map((id) => rebrickDataCached("lego", id))),
-      Promise.all(piezasSet.map((id) => rebrickDataCached("pieza", id))),
-    ]);
+        return {
+          ...obj,
+          detalles: encontrados,
+        };
+      })
+      .slice(offset, offset + parsedPageSize);
 
-    // Mapas para lookup O(1)
-    const legosMap = Object.fromEntries(
-      legosSet.map((id, i) => [id, legosData[i]]),
-    );
-    const piezasMap = Object.fromEntries(
-      piezasSet.map((id, i) => [id, piezasData[i]]),
-    );
+    let allTexts = [];
 
-    // Batch de traducciones
-    const allTexts = [
-      ...legosData.map((i) => i.name),
-      ...piezasData.map((i) => i.part.name),
-      ...piezasData.map((i) => i.color.name),
-    ];
+    if (column === "lego") {
+      allTexts = [
+        ...dataCombined.map((dt) => dt.part.name),
+        ...dataCombined.map((dt) => dt.color.name),
+      ];
+    } else {
+      allTexts = dataCombined.map((dt) => dt.name);
+    }
+
     const translations = await translateBatch(allTexts);
 
-    // Join por fila
-    const rows = result.rows.map((row) => {
-      const lego = legosMap[row.lego];
-      const pieza = piezasMap[row.pieza];
-
-      return {
-        ...row.dataValues,
-        lego_detail: lego
-          ? {
-              ...lego,
-              name_translated: translations[lego.name],
-            }
-          : null,
-        pieza_detail: pieza
-          ? {
-              ...pieza.part,
-              name_translated: translations[pieza.part.name],
-              color: {
-                ...pieza.color,
-                name_translated: translations[pieza.color.name],
-              },
-              element_img_url: pieza.element_img_url,
-            }
-          : null,
-      };
+    const dataFinal = dataCombined.map((dt) => {
+      if (column === "lego") {
+        return {
+          ...dt,
+          part: {
+            ...dt.part,
+            name: translations[dt.part?.name] || dt.part?.name,
+          },
+          color: {
+            ...dt.color,
+            name: translations[dt.color?.name] || dt.color?.name,
+          },
+        };
+      } else {
+        return {
+          ...dt,
+          name: translations[dt.name] || dt.name,
+        };
+      }
     });
 
-    res.status(200).json({
-      message: "Elemento encontrado",
+    return res.status(200).json({
+      message: "Elementos Encontrados",
       data: {
-        count: result.count,
-        rows,
+        count: apiResults.length,
+        data: dataFinal,
       },
     });
   } catch (error) {
@@ -268,9 +272,9 @@ router.delete("/eliminar", async (req, res) => {
 
 router.get("/sets-pieza", async (req, res) => {
   try {
-    const { part, color_id, page, pageSize } = req.query;
+    const { part, color_id } = req.query;
 
-    if (!part || !color_id || !page || !pageSize)
+    if (!part || !color_id)
       return res
         .status(400)
         .json({ message: "Faltan campos obligatorios", data: [] });
@@ -294,7 +298,7 @@ router.get("/sets-pieza", async (req, res) => {
       message: "Sets encontrados",
       data: {
         count: results.count,
-        rows,
+        data: rows,
       },
     });
   } catch (error) {
@@ -305,9 +309,9 @@ router.get("/sets-pieza", async (req, res) => {
 
 router.get("/piezas-set", async (req, res) => {
   try {
-    const { value, page, pageSize } = req.query;
+    const { value } = req.query;
 
-    if (!value || !page || !pageSize)
+    if (!value)
       return res
         .status(400)
         .json({ message: "Faltan campos obligatorios", data: [] });
@@ -343,7 +347,7 @@ router.get("/piezas-set", async (req, res) => {
       message: "Piezas encontradas",
       data: {
         count: results.count,
-        rows,
+        data: rows,
       },
     });
   } catch (error) {
