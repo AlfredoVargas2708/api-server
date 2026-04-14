@@ -134,6 +134,7 @@ router.post("/search", async (req, res) => {
           detalles: encontrados,
         };
       })
+      .sort((a, b) => b.detalles.length - a.detalles.length)
       .slice(offset, offset + parsedPageSize);
 
     let allTexts = [];
