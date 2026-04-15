@@ -93,9 +93,15 @@ router.get("/value", async (req, res) => {
 router.post("/search", async (req, res) => {
   try {
     const { column, page, pageSize } = req.query;
-    const { value, color_id } = req.body;
+    const { value, color_id, database_value } = req.body;
 
     if (!column || !value || !page || !pageSize) {
+      return res
+        .status(400)
+        .json({ message: "Faltan campos obligatorios", data: [] });
+    }
+
+    if (column === "pieza" && !color_id && !database_value) {
       return res
         .status(400)
         .json({ message: "Faltan campos obligatorios", data: [] });
@@ -116,10 +122,13 @@ router.post("/search", async (req, res) => {
     const offset = (parsedPage - 1) * parsedPageSize;
 
     const results = await Lego.findAndCountAll({
-      where: { [column]: value },
+      where: { [column]: column === "lego" ? value : database_value },
       order: [["id", "ASC"]],
       raw: true,
     });
+
+    console.log(apiResults);
+    console.log(results);
 
     let dataCombined = apiResults
       .map((obj) => {
@@ -156,17 +165,18 @@ router.post("/search", async (req, res) => {
           ...dt,
           part: {
             ...dt.part,
-            name: translations[dt.part?.name] || dt.part?.name,
+            name_translated: translations[dt.part?.name] || dt.part?.name,
           },
           color: {
             ...dt.color,
-            name: translations[dt.color?.name] || dt.color?.name,
+            name_translated: translations[dt.color?.name] || dt.color?.name,
           },
         };
       } else {
         return {
           ...dt,
-          name: translations[dt.name] || dt.name,
+          name_translated: translations[dt.name] || dt.name,
+          set_num: dt.set_num.replace("-1", ""),
         };
       }
     });
