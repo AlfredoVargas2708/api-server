@@ -1,9 +1,13 @@
-require("dotenv").config();
+import axios from "axios";
+import { PDFDocument } from "pdf-lib";
+
+// ⚠️ dotenv solo en local
+if (process.env.NODE_ENV !== "production") {
+  await import("dotenv/config");
+}
 
 const URL = process.env.BRICKSET_API_URL;
 const KEY = process.env.BRICKSET_API_KEY;
-const axios = require("axios");
-const { PDFDocument } = require("pdf-lib"); // ✅ import faltante
 
 const getInstruccions = async (value) => {
   const response = await axios.post(
@@ -13,21 +17,23 @@ const getInstruccions = async (value) => {
       userHash: "",
       setNumber: value,
     }).toString(),
-    { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    },
   );
 
   const instructions = response.data.instructions;
 
   if (!instructions || instructions.length === 0) {
-    throw new Error(`No se encontraron instrucciones para el set ${value}`); // ✅ error correcto
+    throw new Error(`No se encontraron instrucciones para el set ${value}`);
   }
 
   const mergedPdf = await PDFDocument.create();
 
-  // Tomar instrucciones en índices pares
-  const instruccionsPDF = instructions.filter((_, i) => i % 2 === 0); // ✅ más limpio
+  // solo índices pares
+  const instruccionsPDF = instructions.filter((_, i) => i % 2 === 0);
 
-  // Descargar PDFs en paralelo en lugar de secuencial
+  // ⚠️ paralelo (rápido pero cuidado con límites)
   const pdfBuffers = await Promise.all(
     instruccionsPDF.map((instruction) =>
       axios
@@ -42,7 +48,7 @@ const getInstruccions = async (value) => {
     pages.forEach((page) => mergedPdf.addPage(page));
   }
 
-  return await mergedPdf.save(); // ✅ retorna bytes, el router maneja el res
+  return await mergedPdf.save();
 };
 
-module.exports = { getInstruccions };
+export { getInstruccions };

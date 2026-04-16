@@ -1,5 +1,5 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('./connect');
+import { DataTypes } from "sequelize";
+import { sequelize } from "./connect.js";
 
 const Lego = sequelize.define(
   "Lego",
@@ -49,7 +49,7 @@ const Lego = sequelize.define(
   {
     tableName: "legos",
     timestamps: false,
-  },
+  }
 );
 
-module.exports = { Lego };
+export { Lego };

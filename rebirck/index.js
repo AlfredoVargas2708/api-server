@@ -1,8 +1,12 @@
-require("dotenv").config();
+import axios from "axios";
+
+// ⚠️ dotenv solo en local (opcional)
+if (process.env.NODE_ENV !== "production") {
+  await import("dotenv/config");
+}
 
 const URL = process.env.REBRICKABLE_URL;
 const KEY = process.env.REBRICKABLE_KEY;
-const axios = require("axios");
 
 const rebrickData = async (column, value) => {
   try {
@@ -21,7 +25,7 @@ const rebrickData = async (column, value) => {
 
       if (themeResponseData.data.parent_id) {
         const finalThemeResponse = await themeResponse(
-          themeResponseData.data.parent_id,
+          themeResponseData.data.parent_id
         );
 
         response.data.set_nombre = finalThemeResponse.data.name;
@@ -55,7 +59,7 @@ const piezasSetData = async (value, pageSize = 100) => {
       count = data.count;
       allResults = [...allResults, ...data.results];
 
-      url = data.next; // 🔥 clave: seguimos mientras exista next
+      url = data.next;
     }
 
     return { count, results: allResults };
@@ -83,7 +87,7 @@ const setsPiezaData = async (part, color_id, pageSize = 100) => {
       count = data.count;
       allResults = [...allResults, ...data.results];
 
-      url = data.next; // 🔥 seguimos hasta que no haya más páginas
+      url = data.next;
     }
 
     return { count, results: allResults };
@@ -98,23 +102,20 @@ const piezasColorsData = async () => {
     const pageSize = 100;
     const url = `${URL}/colors/?page_size=${pageSize}`;
 
-    // Primera llamada para saber el total
     const first = await axios.get(url, {
       headers: { Authorization: `key ${KEY}` },
     });
 
     const totalPages = Math.ceil(first.data.count / pageSize);
 
-    // Si solo hay una página, retorna directo
     if (totalPages <= 1) {
       return { count: first.data.count, results: first.data.results };
     }
 
-    // Pide el resto de páginas en paralelo
     const requests = Array.from({ length: totalPages - 1 }, (_, i) =>
       axios.get(`${url}&page=${i + 2}`, {
         headers: { Authorization: `key ${KEY}` },
-      }),
+      })
     );
 
     const responses = await Promise.all(requests);
@@ -143,7 +144,7 @@ const themeResponse = async (themeId) => {
   });
 };
 
-module.exports = {
+export {
   rebrickData,
   piezasSetData,
   setsPiezaData,

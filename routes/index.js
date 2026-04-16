@@ -1,14 +1,15 @@
-import { Router } from 'express';
-const router = Router();
-const { getInstruccions } = require("../brickset/index.js");
-const {
+import { Router } from "express";
+import { getInstruccions } from "../brickset/index.js";
+import {
   rebrickData,
   piezasSetData,
   setsPiezaData,
   piezasColorsData,
-} = require("../rebirck/index.js");
-const { Lego } = require("../sequelize/lego.model.js");
-const { translation } = require("../translate/index.js");
+} from "../rebirck/index.js";
+import { Lego } from "../sequelize/lego.model.js";
+import { translation } from "../translate/index.js";
+
+const router = Router();
 
 // Cache simple en memoria (reemplazar por Redis en producción)
 const cache = new Map();

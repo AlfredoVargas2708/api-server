@@ -1,4 +1,7 @@
-const JsGoogleTranslateFree = require("@kreisler/js-google-translate-free");
+import JsGoogleTranslateFree from "@kreisler/js-google-translate-free";
+
+// instancia única (importante en serverless)
+const translator = new JsGoogleTranslateFree();
 
 // Cache simple
 const cache = new Map();
@@ -10,7 +13,7 @@ const translation = async (text, target = "es") => {
   if (cache.has(key)) return cache.get(key);
 
   try {
-    const result = await JsGoogleTranslateFree.translate({
+    const result = await translator.translate({
       text,
       to: target,
     });
@@ -25,4 +28,4 @@ const translation = async (text, target = "es") => {
   }
 };
 
-module.exports = { translation };
+export { translation };
