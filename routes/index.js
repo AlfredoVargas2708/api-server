@@ -93,7 +93,7 @@ router.get("/value", async (req, res) => {
 router.post("/search", async (req, res) => {
   try {
     const { column, page, pageSize } = req.query;
-    const { value, color_id, database_value, searchValue } = req.body;
+    const { value, color_id, database_value, filterValues } = req.body;
 
     if (!column || !value || !page || !pageSize) {
       return res
@@ -111,15 +111,25 @@ router.post("/search", async (req, res) => {
 
     if (column === "lego") {
       let piezas = await piezasSetData(value);
-      if (searchValue !== "") {
-        piezas.results = piezas.results.filter(res => res.element_id === searchValue);
+      if (filterValues) {
+        if (filterValues.searchValue) {
+          piezas.results = piezas.results.filter(
+            (res) => res.element_id === filterValues.searchValue,
+          );
+        } else if (filterValues.colorValue) {
+          piezas.results = piezas.results.filter(
+            (res) => res.color.name === filterValues.colorValue,
+          );
+        }
         piezas.count = piezas.results.length;
       }
       apiResults = piezas.results;
     } else if (column === "pieza") {
       let sets = await setsPiezaData(value, color_id);
-      if (searchValue !== "") {
-        sets.results = sets.results.filter(res => res.set_num === searchValue);
+      if (filterValues) {
+        sets.results = sets.results.filter(
+          (res) => res.set_num === filterValues.searchValue,
+        );
         sets.count = sets.results.length;
       }
       apiResults = sets.results;
