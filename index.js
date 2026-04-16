@@ -1,13 +1,7 @@
-import express from "express";
-import cors from "cors";
-import api from "./routes/index.js"
+import app from "./app.js";
 
-const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
-
-app.use("/api", api);
-
-// 👇 necesario para Vercel
-export default app;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+});
