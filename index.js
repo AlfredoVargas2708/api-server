@@ -11,6 +11,4 @@ const api = require('./routes/index');
 
 app.use('/api', api);
 
-app.listen(PORT, () => {
-  console.log(`Server running in http://localhost:${PORT}`);
-});
+export default app;

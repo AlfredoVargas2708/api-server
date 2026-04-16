@@ -1,4 +1,5 @@
-const router = require("express").Router();
+import { Router } from 'express';
+const router = Router();
 const { getInstruccions } = require("../brickset/index.js");
 const {
   rebrickData,
@@ -397,4 +398,4 @@ router.get("/colors", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
