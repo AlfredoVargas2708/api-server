@@ -94,7 +94,7 @@ router.get("/value", async (req, res) => {
 
 router.post("/search", async (req, res) => {
   try {
-    const { column, page, pageSize } = req.query;
+    const { column, page, pageSize, orderBy, order } = req.query;
     const { value, color_id, database_value, filterValues } = req.body;
 
     if (!column || !value || !page || !pageSize) {
@@ -108,6 +108,9 @@ router.post("/search", async (req, res) => {
         .status(400)
         .json({ message: "Faltan campos obligatorios", data: [] });
     }
+
+    const sortField = orderBy || "id";
+    const sortOrder = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
 
     let apiResults = [];
 
@@ -143,7 +146,7 @@ router.post("/search", async (req, res) => {
 
     const results = await Lego.findAndCountAll({
       where: { [column]: column === "lego" ? value : database_value },
-      order: [["id", "ASC"]],
+      order: [[sortField === "detalles" ? "id" : sortField, sortOrder]],
       raw: true,
     });
 
@@ -160,7 +163,46 @@ router.post("/search", async (req, res) => {
           detalles: encontrados,
         };
       })
-      .sort((a, b) => b.detalles.length - a.detalles.length)
+      .sort((a, b) => {
+        let value1;
+        let value2;
+
+        switch (orderBy) {
+          case "detalles":
+            value1 = a.detalles.length;
+            value2 = b.detalles.length;
+            break;
+
+          case "name":
+            value1 = column === "lego" ? a.part?.name : a.name;
+            value2 = column === "lego" ? b.part?.name : b.name;
+            break;
+
+          case "color":
+            value1 = a.color?.name;
+            value2 = b.color?.name;
+            break;
+
+          default:
+            value1 = a[orderBy];
+            value2 = b[orderBy];
+        }
+
+        // Manejo de nulls
+        if (value1 == null && value2 != null) return -1;
+        if (value1 != null && value2 == null) return 1;
+        if (value1 == null && value2 == null) return 0;
+
+        // Strings
+        if (typeof value1 === "string" && typeof value2 === "string") {
+          return sortOrder === "ASC"
+            ? value1.localeCompare(value2)
+            : value2.localeCompare(value1);
+        }
+
+        // Números
+        return sortOrder === "ASC" ? value1 - value2 : value2 - value1;
+      })
       .slice(offset, offset + parsedPageSize);
 
     let allTexts = [];
