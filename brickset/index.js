@@ -10,6 +10,7 @@ const URL = process.env.BRICKSET_API_URL;
 const KEY = process.env.BRICKSET_API_KEY;
 
 const getInstruccions = async (value) => {
+  console.log("ENV URL:", process.env.BRICKSET_API_URL);
   const response = await axios.post(
     URL,
     new URLSearchParams({
