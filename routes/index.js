@@ -146,7 +146,6 @@ router.post("/search", async (req, res) => {
 
     const results = await Lego.findAndCountAll({
       where: { [column]: column === "lego" ? value : database_value },
-      order: [[sortField === "detalles" ? "id" : sortField, sortOrder]],
       raw: true,
     });
 
@@ -164,44 +163,40 @@ router.post("/search", async (req, res) => {
         };
       })
       .sort((a, b) => {
-        let value1;
-        let value2;
+        let valueA;
+        let valueB;
 
-        switch (orderBy) {
+        // 🔹 Obtener valores dinámicamente
+        switch (sortField) {
           case "detalles":
-            value1 = a.detalles.length;
-            value2 = b.detalles.length;
+            valueA = a.detalles.length;
+            valueB = b.detalles.length;
             break;
 
-          case "name":
-            value1 = column === "lego" ? a.part?.name : a.name;
-            value2 = column === "lego" ? b.part?.name : b.name;
+          case "element_id":
+            valueA = Number(a.element_id);
+            valueB = Number(b.element_id);
             break;
 
-          case "color":
-            value1 = a.color?.name;
-            value2 = b.color?.name;
+          case "set_num":
+            valueA = Number(a.set_num);
+            valueB = Number(b.set_num);
+            break;
+
+          case "part.name":
+            valueA = a.name || a.part?.name;
+            valueB = b.name || b.part?.name;
             break;
 
           default:
-            value1 = a[orderBy];
-            value2 = b[orderBy];
+            valueA = a.detalles?.map((d) => d[sortField]);
+            valueB = b.detalles?.map((d) => d[sortField]);
         }
 
-        // Manejo de nulls
-        if (value1 == null && value2 != null) return -1;
-        if (value1 != null && value2 == null) return 1;
-        if (value1 == null && value2 == null) return 0;
-
-        // Strings
-        if (typeof value1 === "string" && typeof value2 === "string") {
-          return sortOrder === "ASC"
-            ? value1.localeCompare(value2)
-            : value2.localeCompare(value1);
-        }
-
-        // Números
-        return sortOrder === "ASC" ? value1 - value2 : value2 - value1;
+        // 🔹 Comparación
+        if (valueA < valueB) return sortOrder === "ASC" ? -1 : 1;
+        if (valueA > valueB) return sortOrder === "ASC" ? 1 : -1;
+        return 0;
       })
       .slice(offset, offset + parsedPageSize);
 
